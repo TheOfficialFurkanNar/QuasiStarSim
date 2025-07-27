@@ -1,2 +1,33 @@
-# QuasiStarSim
- QuasiStarSim is an open-source Python simulation tool that models large-scale gravitational phenomena in astrophysical environments. Generalizing beyond specific cases like HLX-1, it simulates accretion disk dynamics, quasi-star evolution, and emergent black hole formation through interactive energy profile analysis.  The tool supports reproducible experimentation and is designed for use in academic research and science education. Its modular architecture allows for integration into broader simulation workflows and exploration of various cosmic configurations.
+# Project Overview
+ QuasiStarSim is a Python-based simulation framework for modeling post-main-sequence stellar phenomena, including:
+- Accretion disk dynamics
+- Quasi-star formation
+- Gravitational collapse leading to black hole creation
+The code is modular and supports customized input parameters, real-time plotting, and reproducible scientific output. Ideal for researchers, educators, and preliminary mission simulations.
+- # Installation
+- To get started, clone the repository and install the required packages:
+- git clone https://github.com/TheOfficialFurkanNar/QuasiStarSim.git
+cd QuasiStarSim
+pip install -r requirements.txt
+- # Usage
+- Run the main simulation script with default parameters:
+- python simulate_quasistar.py
+- Or customize your simulation via the CLI:
+- python simulate_quasistar.py --mass 300 --rotation 0.5 --output results.csv
+- # Output
+- Simulation produces:
+- Stellar evolution plots (.png)
+- Parameter logs (.csv)
+- Final state summaries (.txt)
+All outputs are stored in the results/ directory by default.
+- # Applications
+- Astrophysics Research
+- Educational demos
+- Pre-mission modeling for ESA or JAXA simulations
+- Preliminary data generation for neural training in AGI models
+- # Acknowledgements
+- Built using:
+- numpy, scipy, pandas, matplotlib, seaborn
+Inspired by frontier work in stellar evolution and post-main-sequence dynamics.
+
+
