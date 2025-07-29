@@ -8,9 +8,9 @@ import click
 import yaml
 import numpy as np
 
-from .config_logging import get_logger
-from .io_utils import save_results, load_results
-from .plots import animate_disk, plot_spectrum
+from config_logging import get_logger
+from io_utils import save_results, load_results
+from plots import animate_disk, plot_spectrum
 
 logger = get_logger(__name__)
 

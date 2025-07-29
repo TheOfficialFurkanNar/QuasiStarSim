@@ -1,16 +1,15 @@
 # simulation.py
 
 import os
-import json
 from datetime import datetime
 from typing import Dict, Any
 
 from tqdm import tqdm
-from .density import calculate_density_profile
-from .temperature import solve_temperature_distribution
-from .spectrum import generate_spectrum
-from .io_utils import save_results
-from .plots import plot_spectrum, animate_disk
+from quasistar.density import calculate_density_profile
+from temperature import solve_temperature_distribution
+from spectrum import generate_spectrum
+from quasistar.io_utils import save_results
+from quasistar.plots import plot_spectrum, animate_disk
 from .logging_config import get_logger
 
 VALID_PARAMS = {

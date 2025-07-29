@@ -9,13 +9,13 @@ Tüm fonksiyonlar constants.py’daki sabitleri kullanır.
 Uses _validate_positive helper for input validation.
 
 Usage:
-    >>> from constants import SOLAR_MASS, ureg
+    >>> from quasistar.constants import SOLAR_MASS, ureg
     >>> isco_radius(0.5, SOLAR_MASS)
     >>> planck_frequency(3e14 * ureg.Hz, 5500 * ureg.kelvin)
     >>> bolometric_luminosity(1e20 * ureg.kg / ureg.s, eta=0.1)
 """
 
-from constants import (
+from quasistar.constants import (
     BOLTZMANN_CONSTANT,
     GRAVITATIONAL_CONSTANT,
     PLANCK_CONSTANT,

@@ -12,13 +12,13 @@ sabitleri ve yardımcı fonksiyonları kullanır.
 import numpy as np
 from pint import Quantity
 
-from constants import (
+from quasistar.constants import (
     PLANCK_CONSTANT,
     BOLTZMANN_CONSTANT,
     SPEED_OF_LIGHT,
 )
 from temperature import effective_temperature
-from physics import _validate_positive
+from quasistar.physics import _validate_positive
 
 __all__ = [
     "planck_nu",
@@ -59,7 +59,7 @@ def planck_nu(
 
     Examples
     --------
-    >>> from constants import ureg
+    >>> from quasistar.constants import ureg
     >>> planck_nu(3e14 * ureg.Hz, 5500 * ureg.kelvin)
     """
     # Pozitiflik kontrolü
@@ -128,7 +128,7 @@ def disk_spectrum(
 
     Examples
     --------
-    >>> from constants import SOLAR_MASS, ureg
+    >>> from quasistar.constants import SOLAR_MASS, ureg
     >>> r_vals = np.linspace(1e10, 1e11, 100) * ureg.meter
     >>> disk_spectrum(3e14 * ureg.Hz, r_vals, SOLAR_MASS, 1e20 * ureg.kg / ureg.s)
     """

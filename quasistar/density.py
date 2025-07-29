@@ -10,19 +10,19 @@ Includes:
   - Per‐step logging
 """
 
-from typing import Dict, Any, Union
+from typing import Dict, Any
 
 import numpy as np
 from joblib import Parallel, delayed
 from tqdm import tqdm
 
-from .constants import (
+from quasistar.constants import (
     BOLTZMANN_CONSTANT,
     GRAVITATIONAL_CONSTANT,
     PROTON_MASS,
     SPEED_OF_LIGHT,
 )
-from .physics import _validate_positive
+from physics import _validate_positive
 from .logging_config import get_logger
 
 logger = get_logger(__name__)
