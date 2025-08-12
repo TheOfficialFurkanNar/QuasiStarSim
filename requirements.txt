@@ -1,6 +1,7 @@
 numpy>=1.22
-matplotlib>=3.5
 scipy>=1.8
 pandas>=1.4
+matplotlib>=3.5
 seaborn>=0.11
-pip freeze > requirements.txt
+click>=8.1             # CLI argüman yönetimi
+astropy>=5.0           # Evrensel sabitler & birim dönüşümleri (İsteğe bağlı ama fiziksel modeller için çok uyumlu)
