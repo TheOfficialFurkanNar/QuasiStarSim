@@ -23,7 +23,7 @@ from quasistar.constants import (
     SPEED_OF_LIGHT,
 )
 from physics import _validate_positive
-from .logging_config import get_logger
+from quasistar.config_logging import get_logger
 
 logger = get_logger(__name__)
 

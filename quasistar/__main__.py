@@ -8,9 +8,10 @@ import click
 import yaml
 import numpy as np
 
-from config_logging import get_logger
-from io_utils import save_results, load_results
-from plots import animate_disk, plot_spectrum
+from quasistar.config_logging import get_logger
+from quasistar.io_utils import save_results, load_results
+from quasistar.plots import animate_disk, plot_spectrum
+from quasistar.run_quasistar import simulate_accretion_disk  # Yeni ekleme
 
 logger = get_logger(__name__)
 
@@ -31,8 +32,8 @@ def cli(log_config):
       spectrum  Işınım spektrumu çizer
       save      Sonuçları farklı formatlarda kaydeder
       load      Kaydedilmiş sonuçları yükler ve özetler
+      run-disk  Akresyon diski simülasyonu çalıştırır
     """
-    # Eğer kullanıcı özel bir YAML config sağlamışsa onu yükle
     if log_config:
         try:
             with open(log_config, "r", encoding="utf-8") as f:
@@ -52,12 +53,7 @@ def cli(log_config):
 @click.option("--interval",   default=50,       help="Kareler arası milisaniye.")
 @click.option("--fps",        default=20,       help="Animasyon fps değeri.")
 def animate(input, sim_id, output_dir, cmap, interval, fps):
-    """
-    Disk profili animasyonu oluşturur.
-
-    INPUT olarak .npz ya da .npy uzantılı dosya bekler,
-    içinde 'field' anahtarı veya tek boyutlu array olmalı.
-    """
+    """Disk profili animasyonu oluşturur."""
     logger.info(f"Loading field data from {input}")
     data = np.load(input, allow_pickle=True)
     field = data["field"] if "field" in data else data[:]
@@ -89,12 +85,7 @@ def animate(input, sim_id, output_dir, cmap, interval, fps):
     help="Grafik boyutu: genişlik yükseklik."
 )
 def spectrum(input, sim_id, output_dir, log_scale, figsize):
-    """
-    Işınım spektrumu çizer.
-
-    INPUT olarak .npz ya da .npy dosya bekler,
-    içinde 'frequency' ve 'flux' array’leri olmalı.
-    """
+    """Işınım spektrumu çizer."""
     logger.info(f"Loading spectrum data from {input}")
     data = np.load(input, allow_pickle=True)
     spec = {
@@ -132,32 +123,23 @@ def spectrum(input, sim_id, output_dir, log_scale, figsize):
     help="İsteğe bağlı versiyon etiketi (default: UTC timestamp)."
 )
 def save(input_file, sim_id, output_dir, fmt, overwrite, version):
-    """
-    Sonuçları JSON/YAML/NPZ/Pickle/HDF5 formatında kaydeder.
-
-    INPUT-FILE; JSON, YAML, NPZ, Pickle veya HDF5 olabilir.
-    """
+    """Sonuçları JSON/YAML/NPZ/Pickle/HDF5 formatında kaydeder."""
     ext = os.path.splitext(input_file)[1].lower().lstrip(".")
-    # Girdi tipi neyse önce onu yükle
     if ext in ("json", "yaml"):
         loader = yaml.safe_load if ext == "yaml" else json.load
         with open(input_file, "r", encoding="utf-8") as f:
             raw = loader(f)
         data = {k: np.array(v) if isinstance(v, list) else v for k, v in raw.items()}
-
     elif ext == "npz":
         arr = np.load(input_file, allow_pickle=True)
         data = {k: arr[k] for k in arr.files}
-
     elif ext == "pickle":
         with open(input_file, "rb") as f:
             data = pickle.load(f)
-
     elif ext in ("hdf5", "h5"):
-        import h5py  # optional dependency
+        import h5py
         with h5py.File(input_file, "r") as hf:
             data = {k: hf[k][()] for k in hf.keys()}
-
     else:
         logger.error(f"Unsupported input ext: {ext}")
         sys.exit(1)
@@ -182,15 +164,40 @@ def save(input_file, sim_id, output_dir, fmt, overwrite, version):
     help="Zorunlu format (default: klasördeki ilk eşleşme)."
 )
 def load(sim_id, output_dir, fmt):
-    """
-    Daha önce kaydedilmiş sonuçları yükler ve özetler.
-    """
+    """Daha önce kaydedilmiş sonuçları yükler ve özetler."""
     data = load_results(sim_id=sim_id, output_dir=output_dir, fmt=fmt)
     click.echo(f"\nLoaded '{sim_id}' results from {output_dir}:\n")
     for key, val in data.items():
         shape = getattr(val, "shape", "-")
         click.echo(f"  • {key}: type={type(val).__name__}, shape={shape}")
     click.echo("")
+
+
+# Yeni komut: run-disk
+@cli.command(name="run-disk")
+@click.option("--mass", type=float, required=True, help="Kara delik kütlesi (Güneş kütlesi)")
+@click.option("--mdot", type=float, required=True, help="Kütle akış hızı (kg/s)")
+@click.option("--inner-radius", type=float, default=None, help="İç yarıçap (m)")
+@click.option("--outer-radius", type=float, default=None, help="Dış yarıçap (m)")
+@click.option("--eta", type=float, default=0.1, help="Verimlilik faktörü")
+@click.option("--tau0", type=float, default=0.01, help="Optik derinlik katsayısı")
+@click.option("--steps", type=int, default=500, help="Radyal adım sayısı")
+@click.option("--time-s", type=int, default=0, help="Başlangıç zamanı (s)")
+@click.option("--animate/--no-animate", default=False, help="Animasyon modu")
+def run_disk(mass, mdot, inner_radius, outer_radius, eta, tau0, steps, time_s, animate):
+    """Akresyon diski simülasyonunu çalıştırır."""
+    results = simulate_accretion_disk(
+        M_solar=mass,
+        mdot=mdot,
+        rin=inner_radius,
+        rout=outer_radius,
+        eta=eta,
+        tau0=tau0,
+        steps=steps,
+        time_s=time_s,
+        animate=animate
+    )
+    logger.info(f"Simülasyon tamamlandı. Toplam L = {results['L']:.2e} W")
 
 
 if __name__ == "__main__":

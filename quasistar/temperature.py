@@ -16,7 +16,7 @@ from tqdm import tqdm
 
 from quasistar.constants import GRAVITATIONAL_CONSTANT, STEFAN_BOLTZMANN_CONSTANT
 from quasistar.physics import isco_radius, _validate_positive
-from .logging_config import get_logger
+from quasistar.config_logging import get_logger
 
 logger = get_logger(__name__)
 

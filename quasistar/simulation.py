@@ -1,5 +1,3 @@
-# simulation.py
-
 import os
 from datetime import datetime
 from typing import Dict, Any
@@ -10,7 +8,8 @@ from temperature import solve_temperature_distribution
 from spectrum import generate_spectrum
 from quasistar.io_utils import save_results
 from quasistar.plots import plot_spectrum, animate_disk
-from .logging_config import get_logger
+from quasistar.config_logging import get_logger
+from quasistar.physics import isco_radius
 
 VALID_PARAMS = {
     "mass": float,
@@ -20,9 +19,9 @@ VALID_PARAMS = {
     "num_radial_bins": int,
     "inclination": float,
     "output_dir": str,
-    "n_jobs": int
+    "n_jobs": int,
+    "mdot": float  # Added for accretion rate
 }
-
 
 def validate_params(params: Dict[str, Any]) -> None:
     missing = [k for k in VALID_PARAMS if k not in params]
@@ -30,14 +29,20 @@ def validate_params(params: Dict[str, Any]) -> None:
         raise ValueError(f"Missing parameters: {missing}")
 
     for key, expected in VALID_PARAMS.items():
-        if not isinstance(params[key], expected):
-            raise TypeError(f"Parameter '{key}' must be {expected.__name__}, got {type(params[key]).__name__}")
+        if key not in params or not isinstance(params[key], expected):
+            raise TypeError(f"Parameter '{key}' must be {expected.__name__}, got {type(params.get(key)).__name__ if key in params else 'None'}")
 
     if params["n_jobs"] < 1:
         raise ValueError("n_jobs must be >= 1")
 
-    if params["inner_radius"] <= 0 or params["outer_radius"] <= params["inner_radius"]:
-        raise ValueError("Require 0 < inner_radius < outer_radius")
+    M = params["mass"] * 1.989e30  # Convert to kg
+    rin_base = isco_radius(0, M)  # Assume zero spin for base radius
+    rin = params["inner_radius"] * rin_base
+    rout = params["outer_radius"] * rin_base
+    if rin <= 0 or rout <= rin:
+        raise ValueError("Require 0 < inner_radius < outer_radius in gravitational radii")
+    params["inner_radius"] = rin
+    params["outer_radius"] = rout
 
     if not (0 < params["alpha"] <= 1):
         raise ValueError("alpha must be in (0, 1]")
@@ -45,25 +50,11 @@ def validate_params(params: Dict[str, Any]) -> None:
     if not (0 <= params["inclination"] <= 90):
         raise ValueError("inclination must be between 0° and 90°")
 
-
-def run_simulation(
-    params: Dict[str, Any],
-    save: bool = True,
-    visualize: bool = True
-) -> Dict[str, Any]:
-    """
-    High-level simulation runner:
-      1. validate_params
-      2. calculate_density_profile (parallel + tqdm)
-      3. solve_temperature_distribution (parallel + tqdm)
-      4. generate_spectrum
-      5. save & visualize (optional)
-    """
+def run_simulation(params: Dict[str, Any], save: bool = True, visualize: bool = True) -> Dict[str, Any]:
     logger = get_logger("simulation")
     logger.info("Starting simulation")
     validate_params(params)
 
-    # Create unique ID & timestamp
     timestamp = datetime.now().isoformat()
     sim_id = "sim_" + timestamp.replace(":", "").replace("-", "").split(".")[0]
 
@@ -76,8 +67,12 @@ def run_simulation(
 
     with tqdm(total=len(steps), desc="Simulation steps") as bar:
         for name, func in steps:
-            results[name] = func()
-            logger.info(f"{name} computed")
+            try:
+                results[name] = func()
+                logger.info(f"{name} computed")
+            except Exception as e:
+                logger.error(f"{name} computation failed: {e}")
+                raise
             bar.update(1)
 
     results.update({
@@ -89,17 +84,24 @@ def run_simulation(
     if save:
         os.makedirs(params["output_dir"], exist_ok=True)
         out_path = os.path.join(params["output_dir"], f"{sim_id}_out.json")
-        save_results(results, file_path=out_path)
-        logger.info(f"Results saved to {out_path}")
+        try:
+            save_results(results, file_path=out_path)
+            logger.info(f"Results saved to {out_path}")
+        except Exception as e:
+            logger.error(f"Failed to save results: {e}")
+            raise
 
     if visualize:
-        plot_spectrum(results["Spectrum"], sim_id=sim_id)
-        animate_disk(results["Temperature"], sim_id=sim_id)
-        logger.info("Visualization done")
+        try:
+            plot_spectrum(results["Spectrum"], sim_id=sim_id)
+            animate_disk(results["Temperature"], sim_id=sim_id)
+            logger.info("Visualization done")
+        except Exception as e:
+            logger.error(f"Visualization failed: {e}")
+            raise
 
     logger.info("Simulation completed successfully")
     return results
-
 
 if __name__ == "__main__":
     import argparse
@@ -109,6 +111,7 @@ if __name__ == "__main__":
     parser.add_argument("--inner_radius", type=float, required=True, help="Inner disk radius (Rg)")
     parser.add_argument("--outer_radius", type=float, required=True, help="Outer disk radius (Rg)")
     parser.add_argument("--alpha", type=float, default=0.1, help="Viscosity α (0 < α ≤ 1)")
+    parser.add_argument("--mdot", type=float, default=1e20, help="Mass accretion rate (kg/s)")  # Added
     parser.add_argument("--num_radial_bins", type=int, default=100, help="Radial bins")
     parser.add_argument("--inclination", type=float, default=30.0, help="Inclination (°)")
     parser.add_argument("--n_jobs", type=int, default=1, help="Parallel jobs")

@@ -5,7 +5,7 @@ with open("../README.md", encoding="utf-8") as f:
     long_description = f.read()
 
 setup(
-    name="pioneerai",
+    name="quasistarsim",
     version="0.1.0",
     author="Furkan",
     author_email="pioneerai.code@gmail.com",
@@ -36,3 +36,4 @@ setup(
         "Operating System :: OS Independent",
     ],
 )
+# python -m quasistar run-disk --mass 10 --mdot 1e20 Çalıştırmak için kesinlikle kullan

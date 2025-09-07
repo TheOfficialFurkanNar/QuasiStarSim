@@ -7,7 +7,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib.animation as animation
 
-from .logging_config import get_logger
+from quasistar.config_logging import get_logger
 
 logger = get_logger(__name__)
 
