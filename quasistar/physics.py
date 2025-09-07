@@ -9,6 +9,7 @@ Tüm fonksiyonlar constants.py’daki sabitleri kullanır.
 Uses _validate_positive helper for input validation.
 """
 
+import numpy as np
 from quasistar.constants import (
     BOLTZMANN_CONSTANT,
     GRAVITATIONAL_CONSTANT,
@@ -16,7 +17,6 @@ from quasistar.constants import (
     SPEED_OF_LIGHT,
     WIEN_DISPLACEMENT,
 )
-import numpy as np
 
 __all__ = [
     "planck_lambda",
@@ -45,41 +45,58 @@ def _validate_positive(**kwargs):
 
 
 def planck_lambda(wavelength, T):
-    """Spektral radyans B_lambda(T) dalga boyuna göre."""
+    """
+    Spektral radyans B_lambda(T) dalga boyuna göre.
+    wavelength: metre cinsinden (float, ndarray veya Pint.Quantity)
+    T: Kelvin cinsinden (float, ndarray veya Pint.Quantity)
+    """
     _validate_positive(wavelength=wavelength, T=T)
 
     # Pint.Quantity ise uygun birime çevir ve magnitude al
     if hasattr(wavelength, "to"):
         wavelength = wavelength.to("meter").magnitude
+    else:
+        wavelength = np.asarray(wavelength, dtype=float)
+
     if hasattr(T, "to"):
         T = T.to("kelvin").magnitude
+    else:
+        T = np.asarray(T, dtype=float)
 
-    exponent = (PLANCK_CONSTANT * SPEED_OF_LIGHT) / (
-        wavelength * BOLTZMANN_CONSTANT * T
-    )
-    if hasattr(exponent, "to"):
-        exponent = exponent.to("").magnitude  # boyutsuzlaştır
+    # Overflow/alt taşma koruması
+    exponent = (PLANCK_CONSTANT * SPEED_OF_LIGHT) / (wavelength * BOLTZMANN_CONSTANT * T)
+    exponent = np.clip(exponent, 1e-12, 700)  # double precision exp limit
 
     numerator = 2 * PLANCK_CONSTANT * SPEED_OF_LIGHT**2
-    if hasattr(numerator, "to"):
-        numerator = numerator.to("watt * meter**3 / steradian").magnitude
+    denominator = wavelength**5 * np.expm1(exponent)  # exp(x)-1 daha stabil
 
-    denominator = wavelength**5 * (np.exp(exponent) - 1)
     return numerator / denominator
 
 
 def planck_frequency(freq, T):
-    """Spektral radyans B_nu(T) frekansa göre."""
+    """
+    Spektral radyans B_nu(T) frekansa göre.
+    freq: Hz cinsinden (float, ndarray veya Pint.Quantity)
+    T: Kelvin cinsinden (float, ndarray veya Pint.Quantity)
+    """
     _validate_positive(freq=freq, T=T)
 
     if hasattr(freq, "to"):
         freq = freq.to("hertz").magnitude
+    else:
+        freq = np.asarray(freq, dtype=float)
+
     if hasattr(T, "to"):
         T = T.to("kelvin").magnitude
+    else:
+        T = np.asarray(T, dtype=float)
 
     exponent = (PLANCK_CONSTANT * freq) / (BOLTZMANN_CONSTANT * T)
+    exponent = np.clip(exponent, 1e-12, 700)
+
     numerator = 2 * PLANCK_CONSTANT * freq**3 / SPEED_OF_LIGHT**2
-    denominator = np.exp(exponent) - 1
+    denominator = np.expm1(exponent)
+
     return numerator / denominator
 
 
@@ -99,7 +116,7 @@ def optical_depth(wavelength, r, tau0=0.01, ref_wavelength=1e-9, ref_radius=None
     if ref_radius is None:
         ref_radius = r
     _validate_positive(ref_radius=ref_radius)
-    return tau0 * (wavelength / ref_wavelength)**(-2) * (r / ref_radius)**(-1)
+    return tau0 * (wavelength / ref_wavelength) ** (-2) * (r / ref_radius) ** (-1)
 
 
 def wien_wavelength_peak(T):
@@ -114,7 +131,7 @@ def isco_radius(a, M):
         raise ValueError(f"Spin parameter must be within [-1,1]. Got {a}.")
     _validate_positive(M=M)
     r_g = GRAVITATIONAL_CONSTANT * M / SPEED_OF_LIGHT**2
-    z1 = 1 + (1 - a**2)**(1/3) * ((1 + a)**(1/3) + (1 - a)**(1/3))
+    z1 = 1 + (1 - a**2) ** (1 / 3) * ((1 + a) ** (1 / 3) + (1 - a) ** (1 / 3))
     z2 = np.sqrt(3 * a**2 + z1**2)
     sign_a = np.sign(a)
     term = np.sqrt((3 - z1) * (3 + z1 + 2 * z2))
@@ -128,7 +145,7 @@ def gravitational_redshift(r, M, a):
         raise ValueError(f"Spin parameter must be within [-1,1]. Got {a}.")
     r_g = GRAVITATIONAL_CONSTANT * M / SPEED_OF_LIGHT**2
     term1 = 1 - 2 * r_g / r
-    term2 = np.sqrt(1 - a**2 * (1 - r_g / r)**2)
+    term2 = np.sqrt(1 - a**2 * (1 - r_g / r) ** 2)
     return np.sqrt(term1 / (1 + term2))
 
 

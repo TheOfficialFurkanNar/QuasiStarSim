@@ -14,7 +14,7 @@ Usage:
     Note: Enables unit-aware plotting with matplotlib if pint is available.
 """
 
-__version__ = "0.1.0"
+__version__ = "0.1.1"
 
 try:
     from pint import UnitRegistry
@@ -25,6 +25,13 @@ if UnitRegistry:
     ureg = UnitRegistry(autoconvert_offset_to_baseunit=True)
     ureg.setup_matplotlib()  # Enable unit-aware plotting
     Q_ = ureg.Quantity
+
+    # 🔹 Ek birim tanımlamaları
+    # Güneş kütlesi (M☉)
+    ureg.define("solar_mass = 1.98847e30 * kilogram = M_sun")
+    # Güneş yarıçapı (opsiyonel, istersen eklersin)
+    ureg.define("solar_radius = 6.957e8 * meter = R_sun")
+
 else:
     ureg = None
 
